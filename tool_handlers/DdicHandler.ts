@@ -228,7 +228,7 @@ export class DdicHandler  {
                 30000,
                 body,
                 { rowNumber: maxRows },
-                { 'Content-Type': 'text/plain', 'Accept': 'application/xml' }
+                { 'Content-Type': 'text/plain', 'Accept': 'application/vnd.sap.adt.datapreview.table.v1+xml' }
             );
         
             return return_response(response, transformTableContents);
@@ -253,7 +253,7 @@ export class DdicHandler  {
             const body = args.sqlQuery;
             const headers = { 
                 'Content-Type': 'text/plain', 
-                'Accept': 'application/xml' 
+                'Accept': 'application/vnd.sap.adt.datapreview.table.v1+xml' 
             };
     
             const response = await makeAdtRequest(
