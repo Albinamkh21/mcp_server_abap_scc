@@ -534,6 +534,7 @@ export function transformPackageInfo(parsed: any): any {
 /**
  * Transform table contents to JSON
  */
+/*
 export function transformTableContents(parsed: any): any {
     const tableData = parsed['tableContents'] || parsed;
     
@@ -545,6 +546,7 @@ export function transformTableContents(parsed: any): any {
         }
     };
 }
+    */
 
 /**
  * Transform type information to JSON
@@ -644,5 +646,67 @@ export function transformObjectMeta(raw: any): any {
             masterLanguage: attrs['adtcore:masterLanguage'],
             version: attrs['adtcore:version']
         }
+    };
+}
+
+
+export function transformTableContents(parsed: any): any {
+   
+    const root = parsed['dataPreview:tableData'] || parsed;
+    
+    // Извлекаем массив колонок
+    const columns = xmlArray(root, 'dataPreview:columns');
+    
+    if (!columns || columns.length === 0) {
+        return {
+            type: 'table_contents',
+            rows: [],
+            totalRows: 0
+        };
+    }
+
+  
+    // В xml-js (compact: true) :
+    // col['dataPreview:metadata']._attributes.name
+    // col['dataPreview:dataSet']['dataPreview:data'] -> массив значений или объект
+    
+    const table: any[] = [];
+    const colNames: string[] = [];
+    const colData: any[][] = [];
+
+    columns.forEach((col: any) => {
+        const meta = col['dataPreview:metadata']?._attributes || {};
+        const name = meta['dataPreview:name'] || 'UNKNOWN';
+        colNames.push(name);
+
+    
+        let dataEntries = col['dataPreview:dataSet']?.['dataPreview:data'];
+        if (!dataEntries) {
+            dataEntries = [];
+        } else if (!Array.isArray(dataEntries)) {
+            dataEntries = [dataEntries];
+        }
+
+        // Вытаскиваем текст из каждого элемента данных
+        const values = dataEntries.map((d: any) => d._text || "");
+        colData.push(values);
+    });
+
+    // Определяем количество строк (по первой колонке)
+    const rowCount = colData[0]?.length || 0;
+
+    // "Поворачиваем" данные из колонок в строки
+    for (let i = 0; i < rowCount; i++) {
+        const row: any = {};
+        colNames.forEach((name, colIndex) => {
+            row[name] = colData[colIndex][i];
+        });
+        table.push(row);
+    }
+
+    return {
+        type: 'table_contents',
+        totalRows: xmlNode(root, 'dataPreview:totalRows') || table.length,
+        rows: table
     };
 }

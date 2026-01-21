@@ -212,74 +212,65 @@ export class DdicHandler  {
     }
 
     async handleTableContents(args: any): Promise<any> {
-        const tableName = args.table_name.toUpperCase();
-        const maxRows = args.maxRows || 50;
-    
-        // Шлем ТОЛЬКО строку запроса, без XML-тегов
-        const body = `SELECT * FROM ${tableName}`;
-    
-        const response = await makeAdtRequest(
-            `/sap/bc/adt/datapreview/freestyle`,
-            'POST',
-            30000,
-            body,
-            { rowNumber: maxRows },
-            { 'Content-Type': 'text/plain', 'Accept': 'application/xml' }
-        );
-    
-        return { content: [{ type: "text", text: response.data }] };
-    }
 
-
-/*
-    async  handleTableContents(args: any) {
         try {
             if (!args?.table_name) {
                 throw new McpError(ErrorCode.InvalidParams, 'Table name is required');
             }
-            const maxRows = args.max_rows || 100;
-            const encodedTableName = encodeURIComponent(args.table_name);
-            
-            // NOTE: This service requires a custom SAP service implementation
-            // You need to implement /z_mcp_abap_adt/z_tablecontent/ in your SAP system
-            const url = `/z_mcp_abap_adt/z_tablecontent/${encodedTableName}?maxRows=${maxRows}`;
-            const response = await makeAdtRequest(url, 'GET', 30000);
-            return return_response(response); // Return raw response (likely JSON from custom service)
-        } catch (error) {
-            // Enhanced error message for GetTableContents since it requires custom implementation
-            const errorMsg = `GetTableContents requires custom SAP service '/z_mcp_abap_adt/z_tablecontent/'. Original error: ${error}`;
-            return return_error(new Error(errorMsg));
-        }
-}
-*/
-
-async handleRunQuery(args: { sqlQuery: string, rowNumber: number }): Promise<any> {
-    try {
-        if (!args?.sqlQuery) {
-            throw new McpError(ErrorCode.InvalidParams, 'SQL query is required');
-        }
-
+            const tableName = args.table_name.toUpperCase();
+            const maxRows = args.maxRows || 30;
         
-        const url = `/sap/bc/adt/sqlscanner/queries`;
-      
-        const params = {
-            rowNumber: args.rowNumber || 50
-        };
-
-        const xmlBody = `<?xml version="1.0" encoding="UTF-8"?>
-            <sqlscanner:sqlQuery xmlns:sqlscanner="http://www.sap.com/adt/sqlscanner" xml:space="preserve">
-                <query>${args.sqlQuery}</query>
-            </sqlscanner:sqlQuery>`;
-
-      
-        const response = await makeAdtRequest(url, 'POST', 30000, xmlBody, params);
- 
-        return return_response(response);
-
-    } catch (error) {
-        return return_error(error);
+            const body = `SELECT * FROM ${tableName}`;
+        
+            const response = await makeAdtRequest(
+                `/sap/bc/adt/datapreview/freestyle`,
+                'POST',
+                30000,
+                body,
+                { rowNumber: maxRows },
+                { 'Content-Type': 'text/plain', 'Accept': 'application/xml' }
+            );
+        
+            return return_response(response, transformTableContents);
+        }
+        catch (error) {
+            return return_error(error);
+        }
+     
     }
-}
+
+
+    async handleRunQuery(args: { sqlQuery: string, rowNumber?: number }): Promise<any> {
+        try {
+            if (!args?.sqlQuery) {
+                throw new McpError(ErrorCode.InvalidParams, 'SQL query is required');
+            }
+    
+            const url = `/sap/bc/adt/datapreview/freestyle`;
+            const params = {
+                rowNumber: args.rowNumber || 50
+            };
+            const body = args.sqlQuery;
+            const headers = { 
+                'Content-Type': 'text/plain', 
+                'Accept': 'application/xml' 
+            };
+    
+            const response = await makeAdtRequest(
+                url, 
+                'POST', 
+                30000, 
+                body, 
+                params, 
+                headers
+            );
+    
+            return return_response(response, transformTableContents);
+    
+        } catch (error) {
+            return return_error(error);
+        }
+    }
 
 
     async  handleGetTypeInfo(args: any) {
