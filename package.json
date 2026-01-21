@@ -1,0 +1,31 @@
+{
+  "name": "mcp-atlas-server",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "MCP Server for Atlas",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.1",
+    "abap-adt-api": "^6.2.1",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "xml-js": "^1.6.11",
+    "@sap-cloud-sdk/connectivity": "^4.3.1",
+    "@sap-cloud-sdk/http-client": "^4.3.1",
+    "axios": "^1.13.2",
+    "http-proxy-agent": "^7.0.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.8.0",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "start-ts": "tsx server.ts",
+    "start-cf": "npm run build && node dist/server.js",
+    "start-mcp-inspector": "npx @modelcontextprotocol/inspector"
+  }
+}

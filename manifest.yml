@@ -1,0 +1,9 @@
+---
+applications:
+  - name: mcp-atlas-server
+    memory: 512M
+    instances: 1
+    buildpack: nodejs_buildpack
+    command: npm start-cf
+    env:
+      NODE_ENV: production

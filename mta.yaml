@@ -1,0 +1,30 @@
+_schema-version: "3.1"
+ID: abap-doc-mcp
+version: 1.0.0
+modules:
+  - name: abap-doc-mcp-srv
+    type: nodejs
+    path: .
+    parameters:
+      buildpack: nodejs_buildpack
+    build-parameters:
+      builder: custom
+      commands:
+        - npm install
+        - npm run build
+        - cp package.json dist/    # Копируем package.json в папку сборки
+      
+      build-result: dist
+    provides:
+      - name: srv-api
+        properties:
+          srv-url: ${default-url}
+    requires:
+      - name: mcp-connectivity
+      - name: mcp-destination
+
+resources:
+  - name: mcp-connectivity
+    type: org.cloudfoundry.existing-service
+  - name: mcp-destination
+    type: org.cloudfoundry.existing-service

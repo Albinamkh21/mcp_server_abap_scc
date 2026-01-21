@@ -1,0 +1,22 @@
+services:
+  documentation-mcp-server:
+    container_name: mcp-server-abap-doc
+    build: 
+        context: .
+        dockerfile: Dockerfile
+    ports:
+      - "${APP_PORT}:${APP_PORT}"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - HOST=${HOST}
+      - NODE_ENV=${NODE_ENV}
+      - APP_PORT
+      - SAP_URL=${SAP_URL}
+      - SAP_USER=${SAP_USER}
+      - SAP_PASSWORD=${SAP_PASSWORD}
+      - SAP_CLIENT=${SAP_CLIENT}
+      - SAP_LANGUAGE=${SAP_LANGUAGE}
+      - MCP_ALLOWED_HOSTS=${MCP_ALLOWED_HOSTS}
+      - MCP_ALLOWED_ORIGINS=${MCP_ALLOWED_ORIGINS}
+    restart: unless-stopped
