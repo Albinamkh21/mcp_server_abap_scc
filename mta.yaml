@@ -1,8 +1,8 @@
 _schema-version: "3.1"
-ID: abap-doc-mcp
+ID: mcp-abap-scc
 version: 1.0.0
 modules:
-  - name: abap-doc-mcp-srv
+  - name: mcp-abap-scc-srv
     type: nodejs
     path: .
     parameters:
@@ -12,8 +12,8 @@ modules:
       commands:
         - npm install
         - npm run build
-        - cp package.json dist/    # Копируем package.json в папку сборки
-      
+        - cp package.json dist/  
+        - cp .env dist/  
       build-result: dist
     provides:
       - name: srv-api

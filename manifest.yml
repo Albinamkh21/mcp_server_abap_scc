@@ -1,9 +1,11 @@
 ---
 applications:
-  - name: mcp-atlas-server
-    memory: 512M
+  - name: mcp-abap-scc
+    memory: 256M
     instances: 1
     buildpack: nodejs_buildpack
     command: npm start-cf
     env:
       NODE_ENV: production
+      CONNECTION_MODE: CLOUD
+      DESTINATION_NAME: "A4H_ADT"

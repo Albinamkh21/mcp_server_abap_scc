@@ -38,7 +38,7 @@ export class AbapAdtServer extends Server {
     constructor() {
         super(
             {
-                name: "mcp-atlas-server",
+                name: "mcp-abap-scc",
                 version: "0.1.0",
             },
             {
@@ -51,7 +51,7 @@ export class AbapAdtServer extends Server {
         const connectionMode = process.env.CONNECTION_MODE || 'DIRECT';
 
         if (connectionMode === 'DIRECT') {
-            // === ЛОКАЛЬНЫЙ РЕЖИМ (DIRECT) ===
+            
             const missingVars = ['SAP_URL', 'SAP_USER', 'SAP_PASSWORD'].filter(v => !process.env[v]);
             if (missingVars.length > 0) {
                 throw new Error(`Missing required environment variables for LOCAL mode: ${missingVars.join(', ')}`);
@@ -69,11 +69,11 @@ export class AbapAdtServer extends Server {
             if (session_types) {
                  this.adtClient.stateful = session_types.stateful;
             }
-        } else {
-            // === ОБЛАЧНЫЙ РЕЖИМ (BTP) ===
+        } 
+        else {
+          
             console.log('Running in CLOUD mode (BTP). ADTClient instantiation skipped.');
-            // В этом режиме adtClient остается undefined.
-            // Handlers должны использовать makeAdtRequest из utils.ts!
+            
         }
 
         this.objectHandler = new ObjectHandler();

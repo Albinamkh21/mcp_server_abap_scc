@@ -23,9 +23,9 @@
   },
   "scripts": {
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "node server.js",
     "start-ts": "tsx server.ts",
-    "start-cf": "npm run build && node dist/server.js",
+    "start-cf": "npm run build && node server.js",
     "start-mcp-inspector": "npx @modelcontextprotocol/inspector"
   }
 }
