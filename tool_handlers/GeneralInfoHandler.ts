@@ -1,8 +1,17 @@
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+//import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { BaseHandler } from './BaseHandler.js';
 import type { ToolDefinition } from '../types/tools.js';
+import { 
+    McpError, 
+    ErrorCode, 
+    makeAdtRequest, 
+    return_error, 
+    return_response ,
+    transformNamedItems
+ 
+} from '../utils/utils.js'; 
 
-export class GeneralInfoHandler extends BaseHandler {
+export class GeneralInfoHandler  {
     getTools(): ToolDefinition[] {
         return [
             {
@@ -38,29 +47,68 @@ export class GeneralInfoHandler extends BaseHandler {
     async handleAnnotationDefinitions(args: any): Promise<any> {
         const startTime = performance.now();
         try {
-            await this.adtclient.login();
-            const result = await this.adtclient.annotationDefinitions();
-            this.trackRequest(startTime, true);
-            return {
-                content: [
-                    {
-                        type: 'text',
-                        text: JSON.stringify({
-                            status: 'success',
-                            result
-                        })
-                    }
-                ]
-            };
-        } catch (error: any) {
-            this.trackRequest(startTime, false);
-            throw new McpError(
-                ErrorCode.InternalError,
-                `Failed to get annotation definitions: ${error.message || 'Unknown error'}`
+           
+            const discoveryResponse = await makeAdtRequest('/sap/bc/adt/discovery', 'GET', 30000);
+            const discoveryXml = discoveryResponse.data;
+    
+          
+            let annotationUrl = '';
+            
+       
+            const match = discoveryXml.match(/<app:collection[^>]*href="([^"]*annotation[^"]*)"[^>]*>/);
+            
+            if (match && match[1]) {
+                annotationUrl = match[1];
+            } else {
+         
+                annotationUrl = '/sap/bc/adt/ddic/ddl/annotations';
+            }
+    
+            
+            const response = await makeAdtRequest(
+                annotationUrl, 
+                'GET', 
+                30000, 
+                undefined, 
+                {}, 
+                {
+                  'Accept': 'application/vnd.sap.adt.ddic.ddl.annotations.v1+xml, application/vnd.sap.adt.repository.annotations.v1+xml, application/xml'
+                }
             );
+    
+            
+            return return_response(response); 
+    
+        } catch (error: any) {
+          
+            return return_error(error);
         }
     }
 
+    async handleObjectTypes(args: any): Promise<any> {
+        const startTime = performance.now();
+        try {
+            const url = `/sap/bc/adt/runtime/traces/abaptraces/objecttypes`;
+    
+            const response = await makeAdtRequest(
+                url, 
+                'GET',
+                30000,
+                undefined,
+                {},
+                {
+                    'Accept': 'application/xml, text/xml'
+                }
+            );
+    
+            return return_response(response,transformNamedItems); 
+        } catch (error: any) {
+           
+            return return_error(error);
+        }
+    }
+
+/*
     async handleObjectTypes(args: any): Promise<any> {
         const startTime = performance.now();
         try {
@@ -89,4 +137,6 @@ export class GeneralInfoHandler extends BaseHandler {
             );
         }
     }
+
+    */
 }

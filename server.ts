@@ -31,8 +31,8 @@ export class AbapAdtServer extends Server {
     private adtClient?: ADTClient;
     private objectHandler: ObjectHandler;
     private classHandler: ClassHandler;
-   // private referenceHandler: ReferenceHandler;
-   // private generalInfoHandler: GeneralInfoHandler;
+    private referenceHandler: ReferenceHandler;
+    private generalInfoHandler: GeneralInfoHandler;
     private ddicHandler: DdicHandler;
 
     constructor() {
@@ -78,8 +78,8 @@ export class AbapAdtServer extends Server {
 
         this.objectHandler = new ObjectHandler();
         this.classHandler = new ClassHandler();
-        //this.referenceHandler = new ReferenceHandler(this.adtClient);
-        //this.generalInfoHandler = new GeneralInfoHandler(this.adtClient);
+        this.referenceHandler = new ReferenceHandler();
+        this.generalInfoHandler = new GeneralInfoHandler();
         this.ddicHandler = new DdicHandler();
         this.setupToolHandlers();
     }
@@ -164,9 +164,9 @@ export class AbapAdtServer extends Server {
                 tools: [
                     ...this.objectHandler.getTools(),
                     ...this.classHandler.getTools(),
-                 //   ...this.referenceHandler.getTools(),
+                    ...this.referenceHandler.getTools(),
                     ...this.ddicHandler.getTools(),
-                  //  ...this.generalInfoHandler.getTools(),
+                    ...this.generalInfoHandler.getTools(),
                     {
                         name: 'healthcheck',
                         description: 'Check server health and connectivity',
@@ -204,11 +204,11 @@ export class AbapAdtServer extends Server {
                         break;
                     case 'getUsageReferences':
                     case 'getUsageReferenceSnippets':
-                      //  result = await this.referenceHandler.handle(request.params.name, request.params.arguments);
+                        result = await this.referenceHandler.handle(request.params.name, request.params.arguments);
                         break;
                     case 'getAllAnnotations':
                     case 'getAllObjectTypes':
-                      //  result = await this.generalInfoHandler.handle(request.params.name, request.params.arguments);
+                        result = await this.generalInfoHandler.handle(request.params.name, request.params.arguments);
                         break;
                     case 'getDdicElementDetails':
                     case 'getTable':    

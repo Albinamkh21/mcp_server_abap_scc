@@ -4,7 +4,8 @@ import {
     makeAdtRequest, 
     return_error, 
     return_response, 
-    transformClassStructureClean 
+    transformClassStructureClean,
+   
 } from '../utils/utils.js'; 
 import { BaseHandler } from './BaseHandler.js';
 import type { ToolDefinition } from '../types/tools.js';
@@ -81,7 +82,9 @@ export class ClassHandler  {
             }
             const path = args.objectUrl.startsWith('/') ? args.objectUrl : `/${args.objectUrl}`;
     
-            const response = await makeAdtRequest(path, 'GET', 30000, undefined, {}, {'Accept': '*/*' });
+            const response = await makeAdtRequest(path, 'GET', 30000, undefined, {}, { 
+                'Accept': 'application/vnd.sap.adt.srvb.servicebindings.v2+xml, application/xml' 
+            });
             
             return return_response(response); 
         } catch (error) {

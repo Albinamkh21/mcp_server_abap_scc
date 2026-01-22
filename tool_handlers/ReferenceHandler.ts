@@ -1,8 +1,17 @@
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+//import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { BaseHandler } from './BaseHandler.js';
 import type { ToolDefinition } from '../types/tools.js';
+import { 
+    McpError, 
+    ErrorCode, 
+    makeAdtRequest, 
+    return_error, 
+    return_response ,
+    transformNamedItems
+ 
+} from '../utils/utils.js'; 
 
-export class ReferenceHandler extends BaseHandler {
+export class ReferenceHandler  {
     getTools(): ToolDefinition[] {
         return [
             {
@@ -34,8 +43,8 @@ export class ReferenceHandler extends BaseHandler {
         switch (toolName) {
             case 'getUsageReferences':
                 return this.handleUsageReferences(args);
-            case 'getUsageReferenceSnippets':
-                return this.handleUsageReferenceSnippets(args);
+           // case 'getUsageReferenceSnippets':
+             //   return this.handleUsageReferenceSnippets(args);
             default:
                 throw new McpError(ErrorCode.MethodNotFound, `Unknown code analysis tool: ${toolName}`);
         }
@@ -43,34 +52,51 @@ export class ReferenceHandler extends BaseHandler {
     
 
     async handleUsageReferences(args: any): Promise<any> {
-        const startTime = performance.now();
         try {
-            await this.adtclient.login();
-            const result = await this.adtclient.usageReferences(
-                args.objectUrl
+            if (!args?.objectUrl) {
+                throw new McpError(ErrorCode.InvalidParams, 'Object URL is required');
+            }
+    
+            // В adt-api URI объекта используется как есть (например, /sap/bc/adt/oo/classes/zcl_class)
+            const objectUri = args.objectUrl;
+            
+            const url = `/sap/bc/adt/repository/ris/usages`;
+    
+            // ВНУТРЕННЯЯ РЕАЛИЗАЦИЯ ADT-API:
+            // 1. Используется пространство имен http://www.sap.com/adt/ris/usages
+            // 2. Корневой элемент - usage:uriReference
+            const body = `<?xml version="1.0" encoding="UTF-8"?>
+    <usage:uriReference xmlns:usage="http://www.sap.com/adt/ris/usages">
+    <usage:uri>${objectUri}</usage:uri>
+    </usage:uriReference>`;
+    
+            const response = await makeAdtRequest(
+                url,
+                'POST',
+                30000,
+                body,
+                { 
+                    // Параметр передается в Query String
+                    'ris_request_type': 'usage_list' 
+                },
+                { 
+                    // Эти заголовки жестко прописаны в исходниках adt-api
+                    'Content-Type': 'application/vnd.sap.adt.ris.usages.v1+xml',
+                    'Accept': 'application/vnd.sap.adt.ris.whereusedlist.v1+xml'
+                }
             );
-            this.trackRequest(startTime, true);
-            return {
-                content: [
-                    {
-                        type: 'text',
-                        text: JSON.stringify({
-                            status: 'success',
-                            result
-                        })
-                    }
-                ]
-            };
-        } catch (error: any) {
-            this.trackRequest(startTime, false);
-            throw new McpError(
-                ErrorCode.InternalError,
-                `Usage references failed: ${error.message || 'Unknown error'}`
-            );
+    
+            // Возвращаем чистый ответ, чтобы убедиться, что "No suitable resource" ушла
+            return return_response(response);
+    
+        } catch (error) {
+            return return_error(error);
         }
     }
 
 
+
+/*
     async handleUsageReferenceSnippets(args: any): Promise<any> {
         const startTime = performance.now();
         try {
@@ -96,7 +122,8 @@ export class ReferenceHandler extends BaseHandler {
             );
         }
     }
-
+        */
+/*
     async handleMainPrograms(args: any): Promise<any> {
         const startTime = performance.now();
         try {
@@ -121,4 +148,6 @@ export class ReferenceHandler extends BaseHandler {
             );
         }
     }
+        */
+
 }

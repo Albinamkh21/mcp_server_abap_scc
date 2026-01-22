@@ -8,6 +8,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { executeHttpRequest, HttpResponse } from '@sap-cloud-sdk/http-client';
+import { xml2js } from 'xml-js';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -708,5 +709,32 @@ export function transformTableContents(parsed: any): any {
         type: 'table_contents',
         totalRows: xmlNode(root, 'dataPreview:totalRows') || table.length,
         rows: table
+    };
+}
+
+
+
+
+/**
+ * Transform Named Item List (Object Types) to JSON
+ */
+export function transformNamedItems(parsed: any): any {
+    const root = parsed['nameditem:namedItemList'] || parsed;
+    const items = xmlArray(root, 'nameditem:namedItem');
+
+    const result = items.map((item: any) => {
+        return {
+            // В этом формате данные лежат в текстовых узлах элементов
+            name: item['nameditem:description']?._text || '',
+            path: item['nameditem:name']?._text || '',
+            // Извлекаем технический ID из конца пути (напр. 'report' или 'transaction')
+            type: (item['nameditem:name']?._text || '').split('/').pop()?.toUpperCase()
+        };
+    }).filter(i => i.path);
+
+    return {
+        type: 'object_types',
+        total: parseInt(root['nameditem:totalItemCount']?._text || '0'),
+        types: result
     };
 }
