@@ -230,7 +230,8 @@ async function makeAdtRequest_local(path: string, method: string, timeout: numbe
     }
 
     const requestHeaders: Record<string, string> = {
-        ...(await getAuthHeaders())
+        ...(await getAuthHeaders()),
+        ...customHeaders
     };
 
     // Add CSRF token for POST/PUT requests
