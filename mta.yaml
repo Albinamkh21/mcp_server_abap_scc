@@ -22,9 +22,29 @@ modules:
     requires:
       - name: mcp-connectivity
       - name: mcp-destination
+      - name: mcp-xsuaa
 
-resources:
+  - name: mcp-approuter
+      type: approuter.nodejs
+      path: approuter
+      requires:
+        - name: mcp-xsuaa
+        - name: srv-api
+          group: destinations
+          properties:
+            name: mcp-srv-api
+            url: ~{srv-url}
+            forwardAuthToken: true
+  resources:
   - name: mcp-connectivity
     type: org.cloudfoundry.existing-service
   - name: mcp-destination
     type: org.cloudfoundry.existing-service
+  - name: mcp-xsuaa
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: application
+      config:
+        xsappname: mcp-abap-scc-${space}
+        tenant-mode: dedicated  

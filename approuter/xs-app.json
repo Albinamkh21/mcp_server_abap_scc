@@ -1,0 +1,10 @@
+{
+    "routes": [
+      {
+        "source": "^/mcp/(.*)$",
+        "target": "/mcp/$1",
+        "destination": "mcp-srv-api",
+        "authenticationType": "xsuaa"
+      }
+    ]
+  }
