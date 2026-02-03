@@ -433,21 +433,19 @@ export function transformSearchResults(parsed: any): any {
     const searchResult = parsed['adtcore:objectReferences'] || parsed;
     const objects = xmlArray(searchResult, 'adtcore:objectReference');
     
+    if (objects.length === 0) {
+        return "ERROR: Object not found";
+    }
+
+    // Берем только первый (самый релевантный) результат
+    const attrs = objects[0]._attributes || {};
+    const uri = attrs['adtcore:uri'] || '';
+
+    // Возвращаем максимально плоский результат. 
+    // Это именно то, что AI увидит в поле "text"
     return {
-        type: 'search_results',
-        totalCount: objects.length,
-        results: objects.map((obj: any) => {
-            // xml-js puts attributes under _attributes key
-            const attrs = obj._attributes || {};
-            
-            return {
-                name: attrs['adtcore:name'] || '',
-                type: attrs['adtcore:type'] || '',
-                uri: attrs['adtcore:uri'] || '',
-                description: attrs['adtcore:description'] || '', 
-                packageName: attrs['adtcore:packageName'] || ''
-            };
-        })
+        uri: uri,
+        pathForCode: `${uri}/source/main`
     };
 }
 

@@ -239,14 +239,7 @@ app.use(express.json());
 
 app.post('/mcp', async (req: express.Request, res: express.Response) => {
 
-    const authHeader = req.headers.authorization;
-    if (authHeader) {
-        console.log("УРА! Авторизация получена.");
-        // Выведет зашифрованный токен (начинается на eyJ...)
-        console.log("JWT Token:", authHeader.substring(0, 50) + "..."); 
-    } else {
-        console.log("ВНИМАНИЕ: Запрос пришел без авторизации!");
-    }
+
 
     const allowedHostsString = process.env.MCP_ALLOWED_HOSTS;
     const allowedOriginsString = process.env.MCP_ALLOWED_ORIGINS;

@@ -287,13 +287,13 @@ export class DdicHandler  {
     
         try {
             const url = `/sap/bc/adt/ddic/domains/${encodedTypeName}/source/main`;
-            const response = await makeAdtRequest(url, 'GET', 30000, undefined, {}, {'Accept': 'text/plain' });
+            const response = await makeAdtRequest(url, 'GET', 30000, undefined, {}, { 'Accept': 'application/vnd.sap.adt.ddic.dataelements.v2+xml, application/xml' });
             } catch (error) {
     
             
             try {
                 const url = `/sap/bc/adt/ddic/dataelements/${encodedTypeName}`;
-                const response = await makeAdtRequest(url, 'GET', 30000);
+                const response = await makeAdtRequest(url, 'GET', 30000, undefined, {}, { 'Accept': 'application/vnd.sap.adt.ddic.domains.v2+xml, application/xml' });
                 return return_response(response, transformTypeInfo);
             } catch (error) {
                 return return_error(error);
