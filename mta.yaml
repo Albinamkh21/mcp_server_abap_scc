@@ -6,6 +6,7 @@ modules:
     type: nodejs
     path: .
     parameters:
+      memory: 512M
       buildpack: nodejs_buildpack
     build-parameters:
       builder: custom
@@ -25,17 +26,20 @@ modules:
       - name: mcp-xsuaa
 
   - name: mcp-approuter
-      type: approuter.nodejs
-      path: approuter
-      requires:
-        - name: mcp-xsuaa
-        - name: srv-api
-          group: destinations
-          properties:
-            name: mcp-srv-api
-            url: ~{srv-url}
-            forwardAuthToken: true
-  resources:
+    type: approuter.nodejs
+    path: approuter
+    parameters:
+       memory: 256M   
+       disk-quota: 512M
+    requires:
+      - name: mcp-xsuaa
+      - name: srv-api
+        group: destinations
+        properties:
+          name: mcp-srv-api
+          url: ~{srv-url}
+          forwardAuthToken: true
+resources:
   - name: mcp-connectivity
     type: org.cloudfoundry.existing-service
   - name: mcp-destination
@@ -45,6 +49,7 @@ modules:
     parameters:
       service: xsuaa
       service-plan: application
+      path: ./xs-security.json  
       config:
-        xsappname: mcp-abap-scc-${space}
+        xsappname: mcp_abap_scc_auth
         tenant-mode: dedicated  

@@ -20,6 +20,9 @@ import { DdicHandler } from './tool_handlers/DdicHandler.js';
 import express from 'express';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 
+import { executeHttpRequest } from '@sap-cloud-sdk/http-client';
+import { requestContext } from './utils/requestContext.js';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -181,7 +184,13 @@ export class AbapAdtServer extends Server {
 
         this.setRequestHandler(CallToolRequestSchema, async (request) => {
             try {
+                
                 let result: any;
+
+              
+
+
+          
 
                 switch (request.params.name) {
                     case 'getObjects':
@@ -240,13 +249,8 @@ app.use(express.json());
 app.post('/mcp', async (req: express.Request, res: express.Response) => {
 
     const authHeader = req.headers.authorization;
-    if (authHeader) {
-        console.log("УРА! Авторизация получена.");
-        // Выведет зашифрованный токен (начинается на eyJ...)
-        console.log("JWT Token:", authHeader.substring(0, 50) + "..."); 
-    } else {
-        console.log("ВНИМАНИЕ: Запрос пришел без авторизации!");
-    }
+    const jwt = authHeader?.split(' ')[1];
+
 
     const allowedHostsString = process.env.MCP_ALLOWED_HOSTS;
     const allowedOriginsString = process.env.MCP_ALLOWED_ORIGINS;
@@ -265,8 +269,133 @@ app.post('/mcp', async (req: express.Request, res: express.Response) => {
         transport.close();
     });
 
-    await server.connect(transport);
-    await transport.handleRequest(req, res, req.body);
+
+    requestContext.run({ jwt }, async () => {
+        try {
+            await server.connect(transport);
+            // Передаем исходный body без всяких модификаций!
+            await transport.handleRequest(req, res, req.body);
+        } catch (err) {
+            console.error('MCP Request Error:', err);
+            
+        }
+    });
+
+
+  //  await server.connect(transport);
+  //  await transport.handleRequest(req, res, req.body);
+
+
+});    
+
+app.get('/mcp/', async (req, res) => {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader) {
+        return res.status(401).send('Токен не найден! Проверьте привязку XSUAA.');
+    }
+
+    const token = authHeader.split(' ')[1];
+    
+    // Декодируем токен (просто чтобы посмотреть содержимое без верификации)
+    const base64Payload = token.split('.')[1];
+    const payload = Buffer.from(base64Payload, 'base64').toString();
+    const parsedPayload = JSON.parse(payload);
+
+    console.log("--- Входящий JWT токен ---");
+    console.log(payload);
+/*
+    res.send(`
+        <h1>Связь установлена!</h1>
+        <p><b>Твой токен:</b></p>
+        <textarea style="width:100%; height:200px;">${token}</textarea>
+        <p><b>Данные из токена (Payload):</b></p>
+        <pre>${JSON.stringify(JSON.parse(payload), null, 2)}</pre>
+    `);
+    */
+
+   let sapResponse = '';
+    let statusColor = 'green';
+    let statusText = 'УСПЕХ: SAP S/4HANA ответила!';
+
+    // 2. Делаем РЕАЛЬНЫЙ запрос в SAP используя токен пользователя
+    try {
+        console.log("--> Отправляем запрос в SAP через Cloud Connector...");
+        
+        const response = await executeHttpRequest(
+            { 
+                
+                destinationName: process.env.DESTINATION_NAME || 'A4H_ADT_PR', 
+                jwt: token
+            },
+            {
+                method: 'GET',
+                url: `/sap/bc/adt/repository/informationsystem/search`,
+                params: {
+                    'operation': 'quickSearch',
+                    'query': "CL_ABAP_MATH*",
+                    'maxResults': 2
+                },
+                headers: {
+                    'Accept': 'application/xml'
+                }
+            }
+        );
+
+        sapResponse = response.data; // XML ответ от SAP
+        
+    } catch (error: any) {
+        statusColor = 'red';
+        statusText = 'ОШИБКА: SAP отклонил запрос (см. детали ниже)';
+        console.error("SAP Request Failed", error.message);
+        
+        // Пытаемся достать текст ошибки от SAP
+        sapResponse = error.response?.data || error.message || JSON.stringify(error);
+    }
+
+    
+res.send(`
+        <html>
+        <body style="font-family: sans-serif; padding: 20px; line-height: 1.5;">
+            <h1 style="color: ${statusColor}">${statusText}</h1>
+            
+            <section style="margin-bottom: 20px; border: 1px solid #ccc; padding: 15px; border-radius: 8px;">
+                <h3>1. Твой JWT Токен для Postman:</h3>
+                <p>Используй этот токен в заголовке <code>Authorization: Bearer &lt;token&gt;</code></p>
+                <textarea id="tokenArea" readonly style="width:100%; height:80px; font-family: monospace; background: #f9f9f9; padding: 10px;">${token}</textarea>
+                <br>
+                <button onclick="copyToken()" style="margin-top: 10px; cursor: pointer; padding: 8px 16px;">Копировать токен</button>
+            </section>
+
+            <div style="background: #eef; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
+                <strong>User Email:</strong> ${parsedPayload.email || parsedPayload.user_name} <br>
+                <strong>Scopes:</strong> ${parsedPayload.scope ? parsedPayload.scope.join(', ') : 'none'}
+            </div>
+
+            <h3>2. Ответ от SAP S/4HANA (Principal Propagation):</h3>
+            <p>Если ниже виден XML — значит SAP узнал пользователя <b>${parsedPayload.email}</b> и пустил его.</p>
+            <textarea style="width:100%; height:300px; font-family: monospace; border: 2px solid ${statusColor}; background: #222; color: #0f0; padding: 10px;">
+${typeof sapResponse === 'object' ? JSON.stringify(sapResponse, null, 2) : sapResponse}
+            </textarea>
+            
+            <br><br>
+            <button onclick="location.reload()" style="padding: 10px 20px;">Обновить статус</button>
+
+            <script>
+                function copyToken() {
+                    var copyText = document.getElementById("tokenArea");
+                    copyText.select();
+                    copyText.setSelectionRange(0, 99999);
+                    navigator.clipboard.writeText(copyText.value);
+                    alert("Токен скопирован в буфер обмена");
+                }
+            </script>
+        </body>
+        </html>
+    `);
+
+
+
 });
 
 const port = parseInt(process.env.PORT || '3000');

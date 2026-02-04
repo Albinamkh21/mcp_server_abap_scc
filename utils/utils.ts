@@ -10,6 +10,8 @@ import { dirname } from 'path';
 import { executeHttpRequest, HttpResponse } from '@sap-cloud-sdk/http-client';
 import { xml2js } from 'xml-js';
 
+import { requestContext } from './requestContext.js';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -278,9 +280,22 @@ async function makeAdtRequest_cloud(
     data?: any, 
     params?: any,
     customHeaders?: Record<string, string>
+   
 ) {
+
+    const store = requestContext.getStore();
+    const jwt = store?.jwt;
+
+    if (!jwt) {
+        // Если токена нет, это критическая ошибка для Cloud режима
+        throw new Error('Cloud mode active but no JWT found in Request Context');
+    }
+
+  
     return executeHttpRequest(
-        { destinationName: process.env.DESTINATION_NAME || 'A4H_ADT' },
+        { destinationName: process.env.DESTINATION_NAME || 'A4H_ADT_PR',
+          jwt: jwt  
+         },
         {
             method: method,
             url: path,
@@ -304,6 +319,7 @@ export async function makeAdtRequest(
     data?: any, 
     params?: any,
     customHeaders?: Record<string, string>
+
 ) {
     const isCloud = process.env.CONNECTION_MODE === 'CLOUD';
 
