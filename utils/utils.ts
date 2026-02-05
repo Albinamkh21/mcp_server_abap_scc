@@ -737,3 +737,71 @@ export function transformNamedItems(parsed: any): any {
         types: result
     };
 }
+/*
+export function transformTransportRequest(parsed: any): any {
+    const root = parsed["tm:root"];
+    if (!root) return [];
+
+    const request = root["tm:request"];
+    if (!request) return [];
+
+    const allObjectsContainer = request["tm:all_objects"];
+    if (!allObjectsContainer) return [];
+
+    const rawObjects = allObjectsContainer["tm:abap_object"];
+    if (!rawObjects) return [];
+
+    const objectsArray = Array.isArray(rawObjects) ? rawObjects : [rawObjects];
+
+    return objectsArray.map((obj: any) => {
+        const attrs = obj["_attributes"] || {};
+
+        return {
+            // Используем wbtype (например, CLAS/OC), чтобы соответствовать пакетному выводу
+            OBJECT_TYPE: attrs["tm:wbtype"] || attrs["tm:type"] || "",
+            OBJECT_NAME: attrs["tm:name"] || "",
+            // Оставляем описание, n8n ждет именно этот ключ
+            DESCRIPTION: attrs["tm:obj_desc"] || "",
+            OBJECT_URI:  attrs["tm:dummy_uri"] || "",
+            PGMID:       attrs["tm:pgmid"] || ""
+        };
+    }).filter(item => item.OBJECT_NAME !== "");
+}
+    */
+
+export function transformTransportRequest(parsed: any): any {
+    const root = parsed["tm:root"];
+    const request = root?.["tm:request"];
+    const allObjects = request?.["tm:all_objects"];
+    const rawItems = allObjects?.["tm:abap_object"];
+
+    if (!rawItems) return [];
+
+    const items = Array.isArray(rawItems) ? rawItems : [rawItems];
+
+    return items.map((item: any) => {
+        const attrs = item["_attributes"] || {};
+        const name = (attrs["tm:name"] || "").toLowerCase();
+        const type = attrs["tm:type"] || "";
+        const wbtype = attrs["tm:wbtype"] || "";
+
+        // Формируем прямой URI как в пакетах
+        let adtUri = "";
+        switch (type) {
+            case 'CLAS': adtUri = `/sap/bc/adt/oo/classes/${name}`; break;
+            case 'INTF': adtUri = `/sap/bc/adt/oo/interfaces/${name}`; break;
+            case 'TABL': adtUri = `/sap/bc/adt/ddic/tables/${name}`; break;
+            case 'DTEL': adtUri = `/sap/bc/adt/ddic/dataelements/${name}`; break;
+            case 'TTYP': adtUri = `/sap/bc/adt/ddic/tabletypes/${name}`; break;
+            case 'DEVC': adtUri = `/sap/bc/adt/packages/${name}`; break;
+            default: adtUri = attrs["tm:dummy_uri"] || ""; // Если тип неизвестен
+        }
+
+        return {
+            "OBJECT_TYPE": wbtype || type,
+            "OBJECT_NAME": attrs["tm:name"] || "",
+            "OBJECT_DESCRIPTION": attrs["tm:obj_desc"] || "",
+            "OBJECT_URI": adtUri
+        };
+    }).filter(obj => obj.OBJECT_NAME !== "");
+}

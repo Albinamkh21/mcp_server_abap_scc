@@ -208,6 +208,7 @@ export class AbapAdtServer extends Server {
                         break;
                     case 'getAllAnnotations':
                     case 'getAllObjectTypes':
+                    case 'getTransportObjectsByID':
                         result = await this.generalInfoHandler.handle(request.params.name, request.params.arguments);
                         break;
                     case 'getDdicElementDetails':
