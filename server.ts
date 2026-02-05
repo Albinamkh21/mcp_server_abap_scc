@@ -274,18 +274,13 @@ app.post('/mcp', async (req: express.Request, res: express.Response) => {
     requestContext.run({ jwt }, async () => {
         try {
             await server.connect(transport);
-            // Передаем исходный body без всяких модификаций!
+      
             await transport.handleRequest(req, res, req.body);
         } catch (err) {
             console.error('MCP Request Error:', err);
             
         }
     });
-
-
-  //  await server.connect(transport);
-  //  await transport.handleRequest(req, res, req.body);
-
 
 });    
 
@@ -298,26 +293,18 @@ app.get('/mcp/', async (req, res) => {
 
     const token = authHeader.split(' ')[1];
     
-    // Декодируем токен (просто чтобы посмотреть содержимое без верификации)
+
     const base64Payload = token.split('.')[1];
     const payload = Buffer.from(base64Payload, 'base64').toString();
     const parsedPayload = JSON.parse(payload);
 
     console.log("--- Входящий JWT токен ---");
     console.log(payload);
-/*
-    res.send(`
-        <h1>Связь установлена!</h1>
-        <p><b>Твой токен:</b></p>
-        <textarea style="width:100%; height:200px;">${token}</textarea>
-        <p><b>Данные из токена (Payload):</b></p>
-        <pre>${JSON.stringify(JSON.parse(payload), null, 2)}</pre>
-    `);
-    */
 
-   let sapResponse = '';
+
+    let sapResponse = '';
     let statusColor = 'green';
-    let statusText = 'УСПЕХ: SAP S/4HANA ответила!';
+    let statusText = 'Соединение с SAP S/4HANA прошло успешно!';
 
     // 2. Делаем РЕАЛЬНЫЙ запрос в SAP используя токен пользователя
     try {
@@ -343,11 +330,11 @@ app.get('/mcp/', async (req, res) => {
             }
         );
 
-        sapResponse = response.data; // XML ответ от SAP
+        sapResponse = response.data; 
         
     } catch (error: any) {
         statusColor = 'red';
-        statusText = 'ОШИБКА: SAP отклонил запрос (см. детали ниже)';
+        statusText = 'ОШИБКА: SAP отклонил запрос ';
         console.error("SAP Request Failed", error.message);
         
         // Пытаемся достать текст ошибки от SAP
@@ -361,8 +348,7 @@ res.send(`
             <h1 style="color: ${statusColor}">${statusText}</h1>
             
             <section style="margin-bottom: 20px; border: 1px solid #ccc; padding: 15px; border-radius: 8px;">
-                <h3>1. Твой JWT Токен для Postman:</h3>
-                <p>Используй этот токен в заголовке <code>Authorization: Bearer &lt;token&gt;</code></p>
+                <h3>1. JWT Токен:</h3>
                 <textarea id="tokenArea" readonly style="width:100%; height:80px; font-family: monospace; background: #f9f9f9; padding: 10px;">${token}</textarea>
                 <br>
                 <button onclick="copyToken()" style="margin-top: 10px; cursor: pointer; padding: 8px 16px;">Копировать токен</button>
@@ -374,7 +360,6 @@ res.send(`
             </div>
 
             <h3>2. Ответ от SAP S/4HANA (Principal Propagation):</h3>
-            <p>Если ниже виден XML — значит SAP узнал пользователя <b>${parsedPayload.email}</b> и пустил его.</p>
             <textarea style="width:100%; height:300px; font-family: monospace; border: 2px solid ${statusColor}; background: #222; color: #0f0; padding: 10px;">
 ${typeof sapResponse === 'object' ? JSON.stringify(sapResponse, null, 2) : sapResponse}
             </textarea>
