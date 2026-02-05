@@ -1,10 +1,12 @@
 {
+    "authenticationMethod": "route",
     "routes": [
       {
-        "source": "^/mcp/(.*)$",
+        "source": "^/mcp($|/.*)$",
         "target": "/mcp/$1",
         "destination": "mcp-srv-api",
-        "authenticationType": "xsuaa"
+        "authenticationType": "xsuaa",
+        "scope": "$XSAPPNAME.User"
       }
     ]
   }

@@ -1,7 +1,19 @@
 {
-    "scopes": [],
-    "attributes": [],
-    "role-templates": [],
-    "authorities-inheritance": false
-  }
-  
+  "xsappname": "mcp_abap_scc_auth",
+  "tenant-mode": "dedicated",
+  "scopes": [
+    {
+      "name": "$XSAPPNAME.User",
+      "description": "User scope"
+    }
+  ],
+  "role-templates": [ 
+    {
+      "name": "Token_Exchange",
+      "description": "Access to MCP",
+      "scope-references": [
+        "$XSAPPNAME.User"
+      ]
+    }
+  ]
+}
