@@ -16,17 +16,20 @@
             return [
                 {
                     name: 'getDdicElementDetails',
-                    description: 'Retrieves technical structure and metadata of ABAP Dictionary object (Table, Structure, or View). Returns the objects core properties, list of its fields (children) with details.',
+                    description: 'Retrieves technical structure and metadata of ABAP Dictionary objects (Table, Table Type, Data Element). For Tables/Structures returns DDL, for others returns XML definition.',
                     inputSchema: {
                         type: 'object',
                         properties: {
                             structure_name: {
                                 type: 'string',
-                                description: 'Structure name',
-                                optional: true
+                                description: 'The name of the ABAP Dictionary object (e.g., ZDB_STAFF, ZTT_STAFF)'
+                            },
+                            object_type: {
+                                type: 'string',
+                                description: 'The type of the object from package info (e.g., "TABL/DT", "TTYP/DA", "DTEL/DE"). Essential for routing the request to the correct ADT endpoint.',
                             }
                         },
-                        required: ['structure_name']
+                        required: ['structure_name', 'object_type'] // Теперь оба поля обязательны
                     }
                 },
                 {
@@ -140,13 +143,14 @@
             }
         }
 
+/*
         async handleDdicElement(args: any): Promise<any> {
             try {
                 if (!args?.structure_name) {
                     throw new McpError(ErrorCode.InvalidParams, 'Structure name is required');
                 }
                 const encodedStructureName = encodeURIComponent(args.structure_name);
-                const url = `/sap/bc/adt/ddic/  /${encodedStructureName}/source/main`;
+                const url = `/sap/bc/adt/ddic/structures/${encodedStructureName}/source/main`;
                 
                 const response = await makeAdtRequest(url, 'GET', 30000, undefined, {}, { 'Accept': 'text/plain'});
                 return return_response(response); // Remove transformer - returns raw structure definition
@@ -154,6 +158,54 @@
                 return return_error(error);
             }
         }
+            */
+        
+        async handleDdicElement(args: any): Promise<any> {
+            try {
+                // 1. Извлекаем данные. Важно: берем конкретные поля из объекта args
+                const name = args.structure_name?.toUpperCase().trim();
+                const type = args.object_type?.toUpperCase() || "";
+        
+                if (!name) throw new Error("Object name is required");
+        
+                const encodedName = encodeURIComponent(name);
+                let url = "";
+                let acceptHeader = "text/plain";
+        
+                // 2. Логика выбора пути на основе Discovery и стандартов ADT
+                if (type.includes("TTYP")) {
+                    // Для табличных типов (ZTT_STAFF) - только XML
+                    url = `/sap/bc/adt/ddic/tabletypes/${encodedName}`;
+                    acceptHeader = "application/xml";
+                } 
+                else if (type.includes("DTEL")) {
+                    // Для элементов данных (Data Elements) - только XML
+                    url = `/sap/bc/adt/ddic/dataelements/${encodedName}`;
+                    acceptHeader = "application/xml";
+                } 
+                else {
+                    // Для таблиц (ZDB_STAFF) и структур - твой рабочий путь (текст)
+                    url = `/sap/bc/adt/ddic/structures/${encodedName}/source/main`;
+                    acceptHeader = "text/plain";
+                }
+        
+                // 3. Вызов запроса
+                const response = await makeAdtRequest(
+                    url, 
+                    'GET', 
+                    30000, 
+                    undefined, 
+                    {}, 
+                    { 'Accept': acceptHeader }
+                );
+        
+                return return_response(response);
+            } catch (error) {
+                return return_error(error);
+            }
+        }
+            
+
         async handleGetTable(args: any) {
             
             try {

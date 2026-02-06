@@ -140,12 +140,12 @@ export function cleanup() {
     axiosInstance = null;
     config = undefined;
     csrfToken = null;
-    cookies = null;
+  //  cookies = null;
 }
 
 let config: SapConfig | undefined;
 let csrfToken: string | null = null;
-let cookies: string | null = null; // Variable to store cookies
+//let cookies: string | null = null; // Variable to store cookies
 
 export async function getBaseUrl() {
     if (!config) {
@@ -192,10 +192,11 @@ async function fetchCsrfToken(url: string): Promise<string> {
             throw new Error('No CSRF token in response headers');
         }
 
-        // Extract and store cookies
+        /*
         if (response.headers['set-cookie']) {
             cookies = response.headers['set-cookie'].join('; ');
         }
+            */
 
         return token;
     } catch (error) {
@@ -204,9 +205,9 @@ async function fetchCsrfToken(url: string): Promise<string> {
             const token = error.response.headers['x-csrf-token'];
             if (token) {
                  // Extract and store cookies from the error response as well
-                if (error.response.headers['set-cookie']) {
-                    cookies = error.response.headers['set-cookie'].join('; ');
-                }
+               /* if (error.response.headers['set-cookie']) {
+                  //  cookies = error.response.headers['set-cookie'].join('; ');
+                }*/
                 return token;
             }
         }
@@ -241,10 +242,11 @@ async function makeAdtRequest_local(path: string, method: string, timeout: numbe
         requestHeaders['x-csrf-token'] = csrfToken;
     }
 
-    // Add cookies if available
+    /*
     if (cookies) {
         requestHeaders['Cookie'] = cookies;
     }
+        */
 
     const config: any = {
         method,
