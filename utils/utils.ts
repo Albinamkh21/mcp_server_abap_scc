@@ -139,13 +139,15 @@ export function cleanup() {
     }
     axiosInstance = null;
     config = undefined;
-    csrfToken = null;
+    cachedCookies = null;
   //  cookies = null;
 }
 
 let config: SapConfig | undefined;
-let csrfToken: string | null = null;
+//let csrfToken: string | null = null;
 //let cookies: string | null = null; // Variable to store cookies
+let cachedToken: string | null = null;
+let cachedCookies: string[] | null = null;
 
 export async function getBaseUrl() {
     if (!config) {
@@ -216,61 +218,47 @@ async function fetchCsrfToken(url: string): Promise<string> {
     }
 }
 
-async function makeAdtRequest_local(path: string, method: string, timeout: number, data?: any, 
-        params?: any, 
-        customHeaders?: Record<string, string>) {
-   
+async function makeAdtRequest_local(path: string, method: string, timeout: number, data?: any, params?: any, customHeaders?: Record<string, string>) {
     const baseUrl = await getBaseUrl();
     const url = `${baseUrl}${path.startsWith('/') ? path : '/' + path}`;
+    
+    const client = createAxiosInstance(); // Оставь его синглтоном для Keep-Alive
 
-    // For POST/PUT requests, ensure we have a CSRF token
-    if ((method === 'POST' || method === 'PUT') && !csrfToken) {
-        try {
-            csrfToken = await fetchCsrfToken(url);
-        } catch (error) {
-            throw new Error('CSRF token is required for POST/PUT requests but could not be fetched');
-        }
-    }
-
-    const requestHeaders: Record<string, string> = {
+    // Функция для сборки заголовков из кэша
+    const getHeaders = async () => ({
         ...(await getAuthHeaders()),
-        ...customHeaders
+        ...customHeaders,
+        ...(cachedToken ? { 'x-csrf-token': cachedToken } : {}),
+        ...(cachedCookies ? { 'Cookie': cachedCookies.join('; ') } : {})
+    });
+
+    const send = async () => {
+        return await client({
+            method,
+            url,
+            headers: await getHeaders(),
+            timeout,
+            params,
+            data
+        });
     };
-
-    // Add CSRF token for POST/PUT requests
-    if ((method === 'POST' || method === 'PUT') && csrfToken) {
-        requestHeaders['x-csrf-token'] = csrfToken;
-    }
-
-    /*
-    if (cookies) {
-        requestHeaders['Cookie'] = cookies;
-    }
-        */
-
-    const config: any = {
-        method,
-        url,
-        headers: requestHeaders,
-        timeout,
-        params: params
-    };
-
-    // Include data in the request configuration if provided
-    if (data) {
-        config.data = data;
-    }
 
     try {
-        const response = await createAxiosInstance()(config);
-        return response;
+        // Оптимистичная попытка
+        return await send();
     } catch (error) {
-        // If we get a 403 with "CSRF token validation failed", try to fetch a new token and retry
-        if (error instanceof AxiosError && error.response?.status === 403 &&
-            error.response.data?.includes('CSRF')) {
-            csrfToken = await fetchCsrfToken(url);
-            config.headers['x-csrf-token'] = csrfToken;
-            return await createAxiosInstance()(config);
+        if (error instanceof AxiosError && (error.response?.status === 401 || error.response?.status === 403)) {
+            // Если сессия протухла — сбрасываем кэш и получаем новый токен ОДИН раз
+            const discoveryUrl = `${baseUrl}/sap/bc/adt/discovery`;
+            const res = await client.get(discoveryUrl, {
+                headers: { ...(await getAuthHeaders()), 'x-csrf-token': 'fetch' }
+            });
+
+            cachedToken = res.headers['x-csrf-token'] || null;
+            cachedCookies = res.headers['set-cookie'] || null;
+
+            // Повторяем запрос с новыми данными
+            return await send();
         }
         throw error;
     }
