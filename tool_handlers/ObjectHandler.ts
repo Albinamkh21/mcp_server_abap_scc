@@ -312,11 +312,13 @@
                     throw new McpError(ErrorCode.InvalidParams, 'Package name is required');
                 }
         
+                const rawPackageName = args.package_name.replace(/\\/g, '/').toUpperCase();
                 const nodeContentsUrl = `/sap/bc/adt/repository/nodestructure`;
-                const encodedPackageName = encodeURIComponent(args.package_name);
+
+               // const encodedPackageName = encodeURIComponent(args.package_name);
                 const nodeContentsParams = {
                     parent_type: "DEVC/K",
-                    parent_name: encodedPackageName,
+                    parent_name: rawPackageName,
                     withShortDescriptions: true
                 };
         
